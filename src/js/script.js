@@ -2,6 +2,8 @@ const input = document.querySelector('.input');
 const letters = Array.from(document.querySelectorAll('[data-letters]'));
 const specs = Array.from(document.querySelectorAll('[data-spec]'));
 const textExample = document.querySelector('#textExample');
+const symbolsPerMinute = document.querySelector('#symbolsPerMinute');
+const errorPercent = document.querySelector('#errorPercent');
 
 const text = `Якуты являются коренным населением Республики Якутия и самым крупным из всех коренных народов Сибири. О предках якутов было впервые упомянуто в 14 веке. Предки современных якутов - кочевое племя курыканов, которые до XIVвека жили на территории Забайкалья. Пришли они туда из-за реки Енисей. Якуты делятся на несколько основных групп:
 - амгинско-ленские, проживают между рекой Леной, на прилегающем левобережье реки, между нижним Алданом и Амгой;
@@ -139,10 +141,7 @@ const text = `Якуты являются коренным населением 
 
 Раньше свадебное платье шили только из натуральных материалов. Сегодня это необязательно, важно только, чтобы наряд был белоснежным и комплектовался тугим поясом. На невесте должны быть обереги для защиты новой семьи от болезней и зла.
 
-Невеста и жених сидят в разных юртах, шаман, мать жениха или отец невесты окуривают их дымом, очищая от всего дурного. Только после этого жених с невестой встречаются, их объявляют мужем и женой, и начинается торжество с застольем, танцами и песнями. После замужества девушка должна ходить только с покрытой головой, ее волосы должен видеть только муж.
-
-
-Источник: https://travelask.ru/articles/yakuty-trudolyubivyy-i-vynoslivyy-narod`
+Невеста и жених сидят в разных юртах, шаман, мать жениха или отец невесты окуривают их дымом, очищая от всего дурного. Только после этого жених с невестой встречаются, их объявляют мужем и женой, и начинается торжество с застольем, танцами и песнями. После замужества девушка должна ходить только с покрытой головой, ее волосы должен видеть только муж.`
 const party = createParty(text);
 
 init();
@@ -214,6 +213,13 @@ function createParty(text) {
         currentStringIndex: 0,
         currentPressedIndex: 0,
         errors: [],
+
+        statisticFlag: false,
+        timerCounter: 0,
+        startTimer: 0,
+        errorCounter: 0,
+        pressCounter: 0,
+        started: false,
     };
 
     party.text = party.text.replace(/\n/g, '\n ');
@@ -244,6 +250,12 @@ function createParty(text) {
 }
 
 function press(letter) {
+    party.started = true;
+
+    if (!party.statisticFlag) {
+        party.statisticFlag = true;
+        party.startTimer = Date.now();
+    }
     const string = party.strings[party.currentStringIndex]
     const mustLetter = string[party.currentPressedIndex]
 
@@ -252,11 +264,17 @@ function press(letter) {
         if (string.length <= party.currentPressedIndex) {
             party.currentPressedIndex = 0;
             party.currentStringIndex++;
+
+            party.statisticFlag = false;
+            party.timerCounter = Date.now() - party.startTimer;
         }
     }
     else if (!party.errors.includes(mustLetter)) {
         party.errors.push(mustLetter);
+        party.errorCounter++;
     }
+
+    party.pressCounter++;
 
     viewUpdate();
 }
@@ -291,6 +309,11 @@ function viewUpdate() {
                 if (letter === '\n') {
                     return '¶';
                 }
+
+                if (letter === '"') {
+                    return "'";
+                }
+
                 return letter;
             })
     )
@@ -328,4 +351,13 @@ function viewUpdate() {
     textExample.append(div);
 
     input.value = string.slice(0, party.currentPressedIndex);
+
+    if (!party.statisticFlag && party.started === true) {
+        symbolsPerMinute.textContent = parseInt(
+            60000 * party.pressCounter / party.timerCounter
+        );
+        errorPercent.textContent = Math.floor(
+            (10000 * party.errorCounter) / party.pressCounter
+        ) / 100 + "%";
+    }
 }
